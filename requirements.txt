@@ -1,2 +1,4 @@
+# Install at least one provider SDK (Anthropic is the default backend).
 anthropic>=0.40.0
+openai>=1.0.0
 python-dotenv>=1.0.0
