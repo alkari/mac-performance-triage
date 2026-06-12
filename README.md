@@ -28,30 +28,30 @@ The generated HTML report includes:
 
 - **macOS** (uses macOS-specific system commands)
 - **Python 3.9+**
-- **OpenAI API key** (GPT-4o recommended)
+- **Anthropic API key** (Claude Opus 4.8 recommended)
 
 ## Installation
 
 ```bash
 # Clone the repository
-git clone https://github.com/brunoterkaly/mac-performance-triage.git
+git clone https://github.com/alkari/mac-performance-triage.git
 cd mac-performance-triage
 
 # Install dependencies
 pip install -r requirements.txt
 
-# Set your OpenAI API key
-export OPENAI_API_KEY="your_api_key_here"
+# Set your Anthropic API key
+export ANTHROPIC_API_KEY="your_api_key_here"
 ```
 
 ## Usage
 
 ```bash
-# Run with defaults (gpt-4o model, output in current directory)
+# Run with defaults (claude-opus-4-8 model, output in current directory)
 python3 mac-ai-healthcheck.py
 
 # Specify a different model
-python3 mac-ai-healthcheck.py --model gpt-4o-mini
+python3 mac-ai-healthcheck.py --model claude-sonnet-4-6
 
 # Save reports to a specific directory
 python3 mac-ai-healthcheck.py --out-dir ~/Desktop/reports
@@ -61,15 +61,15 @@ python3 mac-ai-healthcheck.py --out-dir ~/Desktop/reports
 
 | Flag | Description | Default |
 |------|-------------|---------|
-| `--model` | OpenAI model to use | `gpt-4o` (or `OPENAI_MODEL` env var) |
+| `--model` | Anthropic Claude model to use | `claude-opus-4-8` (or `ANTHROPIC_MODEL` env var) |
 | `--out-dir` | Directory for output files | `.` (current directory) |
 
 ### Environment Variables
 
 | Variable | Description |
 |----------|-------------|
-| `OPENAI_API_KEY` | **(Required)** Your OpenAI API key |
-| `OPENAI_MODEL` | Override the default model without using `--model` |
+| `ANTHROPIC_API_KEY` | **(Required)** Your Anthropic API key |
+| `ANTHROPIC_MODEL` | Override the default model without using `--model` |
 
 ## Output Files
 
@@ -100,16 +100,16 @@ Each run produces three timestamped files:
 
 | Problem | Solution |
 |---------|----------|
-| `OPENAI_API_KEY not set` | Run `export OPENAI_API_KEY="sk-..."` |
-| `openai` module not found | Run `pip install -r requirements.txt` |
+| `ANTHROPIC_API_KEY not set` | Run `export ANTHROPIC_API_KEY="sk-ant-..."` |
+| `anthropic` module not found | Run `pip install -r requirements.txt` |
 | Script timeout | Some system commands may be slow; retry or check Activity Monitor |
 | Large capture output warning | Normal for busy systems; output is auto-truncated |
 
 ## Security & Privacy
 
 - All diagnostics run **locally** on your Mac.
-- Process names and system stats are sent to the OpenAI API for analysis.
-- No data is stored remotely beyond OpenAI's standard API data handling.
+- Process names and system stats are sent to the Anthropic API for analysis.
+- No data is stored remotely beyond Anthropic's standard API data handling.
 - Review the generated `.sh` script before running if you prefer manual control.
 
 ## License
