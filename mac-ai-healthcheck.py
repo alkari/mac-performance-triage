@@ -13,8 +13,8 @@ What this does:
 5. Launch: Automatically runs the macOS 'open' command to view the report in your browser.
 
 Setup:
-    pip install --upgrade openai
-    export OPENAI_API_KEY="your_api_key_here"
+    pip install --upgrade anthropic
+    export ANTHROPIC_API_KEY="your_api_key_here"
 
 Run:
     python3 mac_ai_diagnose_pipeline.py
@@ -41,9 +41,9 @@ except ImportError:
     pass
 
 try:
-    from openai import OpenAI
+    from anthropic import Anthropic
 except ImportError:
-    OpenAI = None
+    Anthropic = None
 
 # ANSI colors
 RESET   = "\033[0m"
@@ -58,7 +58,12 @@ BLUE    = "\033[34m"
 WHITE   = "\033[37m"
 
 ANSI_RE = re.compile(r"\x1b\[[0-9;]*m")
-DEFAULT_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o")
+DEFAULT_MODEL = os.getenv("ANTHROPIC_MODEL", "claude-opus-4-8")
+
+# The HTML report (Phase 2) can be long, so give the model generous headroom.
+# Values this large require streaming on the Anthropic SDK to avoid HTTP timeouts.
+PLANNER_MAX_TOKENS = 8000
+ANALYST_MAX_TOKENS = 32000
 
 
 def strip_ansi(text: str) -> str:
@@ -521,13 +526,15 @@ def plan_dynamic_capture(client, diag, local_report_plain, model):
         ```
     """).strip()
 
-    response = client.chat.completions.create(
+    with client.messages.stream(
         model=model,
+        max_tokens=PLANNER_MAX_TOKENS,
+        thinking={"type": "adaptive"},
         messages=[{"role": "user", "content": prompt}],
-        temperature=0.2
-    )
+    ) as stream:
+        message = stream.get_final_message()
 
-    content = response.choices[0].message.content
+    content = next((b.text for b in message.content if b.type == "text"), "")
     match = re.search(r"```bash(.*?)```", content, re.DOTALL)
     if match:
         return match.group(1).strip()
@@ -629,13 +636,15 @@ def analyze_deep_capture_html(client, capture_output, model):
         ```
     """).strip()
 
-    response = client.chat.completions.create(
+    with client.messages.stream(
         model=model,
+        max_tokens=ANALYST_MAX_TOKENS,
+        thinking={"type": "adaptive"},
         messages=[{"role": "user", "content": prompt}],
-        temperature=0.3,
-    )
+    ) as stream:
+        message = stream.get_final_message()
 
-    content = response.choices[0].message.content
+    content = next((b.text for b in message.content if b.type == "text"), "")
 
     if content.startswith("```html"):
         content = content.replace("```html", "", 1).rstrip("` \n")
@@ -654,7 +663,7 @@ def parse_args():
     parser = argparse.ArgumentParser(
         description="Run Mac diagnostics with a 2-stage AI pipeline returning an HTML report."
     )
-    parser.add_argument("--model", default=DEFAULT_MODEL, help=f"OpenAI model to use. Default: {DEFAULT_MODEL}")
+    parser.add_argument("--model", default=DEFAULT_MODEL, help=f"Anthropic Claude model to use. Default: {DEFAULT_MODEL}")
     parser.add_argument("--out-dir", default=".", help="Directory where report files are saved.")
     return parser.parse_args()
 
@@ -664,13 +673,13 @@ def main():
     timestamp = dt.datetime.now().strftime("%Y%m%d_%H%M%S")
     out_dir = Path(args.out_dir).expanduser().resolve()
 
-    if OpenAI is None or not os.getenv("OPENAI_API_KEY"):
-        print(f"{RED}Error: OpenAI SDK not installed or OPENAI_API_KEY not set.{RESET}")
-        print(f"  Install:  pip install --upgrade openai")
-        print(f"  Set key:  export OPENAI_API_KEY='sk-...'")
+    if Anthropic is None or not os.getenv("ANTHROPIC_API_KEY"):
+        print(f"{RED}Error: Anthropic SDK not installed or ANTHROPIC_API_KEY not set.{RESET}")
+        print(f"  Install:  pip install --upgrade anthropic")
+        print(f"  Set key:  export ANTHROPIC_API_KEY='sk-ant-...'")
         sys.exit(1)
 
-    client = OpenAI()
+    client = Anthropic()
 
     # 1. INITIAL TRIAGE
     print(f"\n{BOLD}{CYAN}== Phase 1: Initial Triage =={RESET}")
